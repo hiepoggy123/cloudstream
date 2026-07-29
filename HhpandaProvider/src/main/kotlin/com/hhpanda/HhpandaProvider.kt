@@ -4,6 +4,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -80,7 +81,7 @@ class HhpandaProvider : MainAPI() {
         val epInfo = selectFirst(".ep, .episode, .halim-episode-count")?.text()
         val epNum = epInfo?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
 
-        return newTvSeriesSearchResponse(title, href, TvType.Anime) {
+        return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
             addDubStatus(isDub = false, epNum)
         }
@@ -98,12 +99,12 @@ class HhpandaProvider : MainAPI() {
         val posterUrl = img.attr("data-src").takeIf { it.isNotBlank() }
             ?: img.attr("src").takeIf { it.isNotBlank() }
 
-        return newTvSeriesSearchResponse(title, href, TvType.Anime) {
+        return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
         }
     }
 
-    override suspend fun search(query: String, page: Int): SearchResponseList? {
+    override suspend fun search(query: String, page: Int): List<SearchResponse>? {
         val url = if (page == 1) "$mainUrl/?s=${query}" else "$mainUrl/page/$page/?s=$query"
         val document = app.get(url, referer = mainUrl).document
 
@@ -119,10 +120,10 @@ class HhpandaProvider : MainAPI() {
             }.distinctBy { it.attr("href") }.mapNotNull { it.toSearchResultFromLink() }
         }
 
-        return items.toNewSearchResponseList()
+        return items
     }
 
-    override suspend fun quickSearch(query: String): SearchResponseList? = search(query, 1)
+    override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query, 1)
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url, referer = mainUrl).document
@@ -208,7 +209,7 @@ class HhpandaProvider : MainAPI() {
             this.posterUrl = posterUrl
             this.plot = description
             this.tags = tags
-            this.rating = rating
+            this.score = rating
             this.year = year
         }
     }
@@ -253,7 +254,7 @@ class HhpandaProvider : MainAPI() {
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
                         // Override the name to include quality info
-                        val newLink = ExtractorLink(
+                        val newLink = newExtractorLink(
                             source = this.name,
                             name = "$serverName ($svLabel)",
                             url = link.url,
