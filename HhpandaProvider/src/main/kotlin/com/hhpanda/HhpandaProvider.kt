@@ -128,6 +128,7 @@ class HhpandaProvider : MainAPI() {
         return searchList(query, 1)
     }
 
+    @Suppress("DEPRECATION")
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url, referer = mainUrl).document
 
@@ -156,9 +157,9 @@ class HhpandaProvider : MainAPI() {
         // Extract genres/tags
         val tags = document.select("a[href*='/the-loai/']").map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
 
-        // Extract rating (convert e.g. 8.5/10 to Int score e.g. 85)
+        // Extract rating
         val rating = Regex("""ratingValue["\s:]+([0-9.]+)""").find(document.html())
-            ?.groupValues?.get(1)?.toDoubleOrNull()?.times(10)?.toInt()
+            ?.groupValues?.get(1)?.toDoubleOrNull()?.times(200)?.toInt()
 
         // Extract year from title or description
         val year = Regex("""(\d{4})""").find(document.html())?.groupValues?.get(1)?.toIntOrNull()
@@ -212,11 +213,12 @@ class HhpandaProvider : MainAPI() {
             this.posterUrl = posterUrl
             this.plot = description
             this.tags = tags
-            this.score = rating?.let { Score(it) }
+            this.rating = rating
             this.year = year
         }
     }
 
+    @Suppress("DEPRECATION")
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -257,7 +259,6 @@ class HhpandaProvider : MainAPI() {
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
                         // Override the name to include quality info
-                        @Suppress("DEPRECATION")
                         val newLink = ExtractorLink(
                             source = this.name,
                             name = "$serverName ($svLabel)",
