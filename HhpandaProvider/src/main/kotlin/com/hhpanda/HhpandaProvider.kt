@@ -4,7 +4,6 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -63,22 +62,22 @@ class HhpandaProvider : MainAPI() {
 
     private fun Element.toSearchResult(): SearchResponse? {
         // Try to find link and image within the element
-        val link = selectFirst("a[href*='$mainUrl/']") ?: selectFirst("a") ?: return null
+        val link = select("a[href*='$mainUrl/']").firstOrNull() ?: select("a").firstOrNull() ?: return null
         val href = link.attr("href").takeIf { it.isNotBlank() } ?: return null
         if (href == mainUrl || href == "$mainUrl/") return null
 
-        val img = selectFirst("img")
+        val img = select("img").firstOrNull()
         val posterUrl = img?.attr("data-src")?.takeIf { it.isNotBlank() }
             ?: img?.attr("src")?.takeIf { it.isNotBlank() }
 
-        val titleEl = selectFirst("h2, h3, .entry-title, .film-name, .title, a[title]")
+        val titleEl = select("h2, h3, .entry-title, .film-name, .title, a[title]").firstOrNull()
         val title = titleEl?.text()?.trim()
             ?: link.attr("title").takeIf { it.isNotBlank() }
             ?: img?.attr("alt")?.takeIf { it.isNotBlank() }
             ?: return null
 
         // Extract episode info if available
-        val epInfo = selectFirst(".ep, .episode, .halim-episode-count")?.text()
+        val epInfo = select(".ep, .episode, .halim-episode-count").firstOrNull()?.text()
         val epNum = epInfo?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
 
         return newAnimeSearchResponse(title, href, TvType.Anime) {
@@ -90,7 +89,7 @@ class HhpandaProvider : MainAPI() {
     private fun Element.toSearchResultFromLink(): SearchResponse? {
         val href = attr("href").takeIf { it.isNotBlank() } ?: return null
         if (href == mainUrl || href == "$mainUrl/") return null
-        val img = selectFirst("img") ?: return null
+        val img = select("img").firstOrNull() ?: return null
         val title = attr("title").takeIf { it.isNotBlank() }
             ?: img.attr("alt").takeIf { it.isNotBlank() }
             ?: text().trim().takeIf { it.isNotBlank() }
@@ -104,7 +103,7 @@ class HhpandaProvider : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String, page: Int): List<SearchResponse>? {
+    override suspend fun search(query: String, page: Int): SearchResponseList? {
         val url = if (page == 1) "$mainUrl/?s=${query}" else "$mainUrl/page/$page/?s=$query"
         val document = app.get(url, referer = mainUrl).document
 
@@ -120,10 +119,10 @@ class HhpandaProvider : MainAPI() {
             }.distinctBy { it.attr("href") }.mapNotNull { it.toSearchResultFromLink() }
         }
 
-        return items
+        return items.toNewSearchResponseList()
     }
 
-    override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query, 1)
+    override suspend fun quickSearch(query: String): SearchResponseList? = search(query, 1)
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url, referer = mainUrl).document
@@ -131,24 +130,24 @@ class HhpandaProvider : MainAPI() {
         // Extract post ID from DoPostInfo JavaScript variable or data attributes
         val postId = Regex("""var\s+DoPostInfo\s*=\s*\{[^}]*id:\s*(\d+)""")
             .find(document.html())?.groupValues?.get(1)
-            ?: document.selectFirst("[data-post-id]")?.attr("data-post-id")
+            ?: document.select("[data-post-id]").firstOrNull()?.attr("data-post-id")
             ?: throw ErrorLoadingException("Cannot find post ID")
 
         // Extract title
         val title = Regex("""name:\s*"([^"]+)"""").find(document.html())?.groupValues?.get(1)
-            ?: document.selectFirst("h1, .entry-title")?.text()?.trim()
+            ?: document.select("h1, .entry-title").firstOrNull()?.text()?.trim()
             ?: throw ErrorLoadingException("Cannot find title")
 
         // Extract poster
         val posterUrl = Regex("""image:\s*'([^']+)'""").find(document.html())?.groupValues?.get(1)
-            ?: document.selectFirst("meta[property='og:image']")?.attr("content")
-            ?: document.selectFirst(".poster img, .film-poster img, img")?.let {
+            ?: document.select("meta[property='og:image']").firstOrNull()?.attr("content")
+            ?: document.select(".poster img, .film-poster img, img").firstOrNull()?.let {
                 it.attr("data-src").takeIf { s -> s.isNotBlank() } ?: it.attr("src")
             }
 
         // Extract description
-        val description = document.selectFirst("meta[name='description']")?.attr("content")
-            ?: document.selectFirst(".description, .entry-content, .plot")?.text()
+        val description = document.select("meta[name='description']").firstOrNull()?.attr("content")
+            ?: document.select(".description, .entry-content, .plot").firstOrNull()?.text()
 
         // Extract genres/tags
         val tags = document.select("a[href*='/the-loai/']").map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
@@ -209,7 +208,7 @@ class HhpandaProvider : MainAPI() {
             this.posterUrl = posterUrl
             this.plot = description
             this.tags = tags
-            this.score = rating
+            this.rating = rating
             this.year = year
         }
     }
@@ -254,7 +253,7 @@ class HhpandaProvider : MainAPI() {
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
                         // Override the name to include quality info
-                        val newLink = newExtractorLink(
+                        val newLink = ExtractorLink(
                             source = this.name,
                             name = "$serverName ($svLabel)",
                             url = link.url,
