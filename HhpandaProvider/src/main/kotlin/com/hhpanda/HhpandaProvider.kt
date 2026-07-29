@@ -122,7 +122,7 @@ class HhpandaProvider : MainAPI() {
         return items.toNewSearchResponseList()
     }
 
-    override suspend fun quickSearch(query: String): SearchResponseList? = search(query, 1)
+    override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query, 1)?.list
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url, referer = mainUrl).document
@@ -154,7 +154,7 @@ class HhpandaProvider : MainAPI() {
 
         // Extract rating
         val rating = Regex("""ratingValue["\s:]+([0-9.]+)""").find(document.html())
-            ?.groupValues?.get(1)?.toDoubleOrNull()?.times(200)?.toInt()
+            ?.groupValues?.get(1)?.toDoubleOrNull()
 
         // Extract year from title or description
         val year = Regex("""(\d{4})""").find(document.html())?.groupValues?.get(1)?.toIntOrNull()
@@ -208,7 +208,7 @@ class HhpandaProvider : MainAPI() {
             this.posterUrl = posterUrl
             this.plot = description
             this.tags = tags
-            this.rating = rating
+            this.score = rating?.let { Score(it, 10) }
             this.year = year
         }
     }
@@ -253,15 +253,9 @@ class HhpandaProvider : MainAPI() {
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
                         // Override the name to include quality info
-                        val newLink = ExtractorLink(
+                        val newLink = link.copy(
                             source = this.name,
-                            name = "$serverName ($svLabel)",
-                            url = link.url,
-                            referer = link.referer,
-                            quality = link.quality,
-                            isM3u8 = link.isM3u8,
-                            headers = link.headers,
-                            extractorData = link.extractorData
+                            name = "$serverName ($svLabel)"
                         )
                         callback(newLink)
                         foundLinks = true
