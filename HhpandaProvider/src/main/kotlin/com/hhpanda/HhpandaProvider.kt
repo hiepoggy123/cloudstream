@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.hhpanda
 
 import com.lagradost.cloudstream3.*
@@ -128,7 +129,6 @@ class HhpandaProvider : MainAPI() {
         return searchList(query, 1)
     }
 
-    @Suppress("DEPRECATION")
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url, referer = mainUrl).document
 
@@ -218,7 +218,6 @@ class HhpandaProvider : MainAPI() {
         }
     }
 
-    @Suppress("DEPRECATION")
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,

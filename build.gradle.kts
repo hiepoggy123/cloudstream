@@ -76,6 +76,41 @@ subprojects {
         implementation("org.jsoup:jsoup:1.18.3")
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
     }
+
+    tasks.register("printCloudStreamApi") {
+        doLast {
+            val urls = configurations.getByName("cloudstream").resolve().map { it.toURI().toURL() }.toTypedArray()
+            val cl = java.net.URLClassLoader(urls, Thread.currentThread().contextClassLoader)
+            
+            println("=== SCORE CONSTRUCTORS ===")
+            try {
+                val scoreClass = cl.loadClass("com.lagradost.cloudstream3.Score")
+                scoreClass.declaredConstructors.forEach { println(it) }
+                println("Score methods:")
+                scoreClass.declaredMethods.filter { java.lang.reflect.Modifier.isStatic(it.modifiers) }.forEach { println(it) }
+            } catch (e: Exception) {
+                println("Score not found: ${e.message}")
+            }
+            
+            println("=== EXTRACTORLINK CONSTRUCTORS ===")
+            try {
+                val elClass = cl.loadClass("com.lagradost.cloudstream3.utils.ExtractorLink")
+                elClass.declaredConstructors.forEach { println(it) }
+                println("ExtractorLink methods:")
+                elClass.declaredMethods.filter { java.lang.reflect.Modifier.isStatic(it.modifiers) }.forEach { println(it) }
+            } catch (e: Exception) {
+                println("ExtractorLink not found: ${e.message}")
+            }
+            
+            println("=== NEWEXTRACTORLINK ===")
+            try {
+                val apiClass = cl.loadClass("com.lagradost.cloudstream3.utils.ExtractorApiKt")
+                apiClass.declaredMethods.filter { it.name.contains("newExtractorLink") }.forEach { println(it) }
+            } catch (e: Exception) {
+                println("ExtractorApiKt not found: ${e.message}")
+            }
+        }
+    }
 }
 
 task<Delete>("clean") {
