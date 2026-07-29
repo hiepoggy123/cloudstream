@@ -2,9 +2,9 @@ name: Build Plugin
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HhpandaProvider
-          path: HhpandaProvider/build/*.cs3
+          path: HhpandaProvider/build/*.cs
