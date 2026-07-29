@@ -213,7 +213,6 @@ class HhpandaProvider : MainAPI() {
             this.posterUrl = posterUrl
             this.plot = description
             this.tags = tags
-            this.rating = rating
             this.year = year
         }
     }
@@ -257,18 +256,7 @@ class HhpandaProvider : MainAPI() {
 
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
-                        // Override the name to include quality info
-                        val newLink = ExtractorLink(
-                            source = this.name,
-                            name = "$serverName ($svLabel)",
-                            url = link.url,
-                            referer = link.referer,
-                            quality = link.quality,
-                            isM3u8 = link.isM3u8,
-                            headers = link.headers,
-                            extractorData = link.extractorData
-                        )
-                        callback(newLink)
+                        callback(link)
                         foundLinks = true
                     }
                 }

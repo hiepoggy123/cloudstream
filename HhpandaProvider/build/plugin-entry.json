@@ -1,0 +1,21 @@
+{
+    "iconUrl": "https://hhpanda.st/wp-content/uploads/2024/10/apple-touch-icon.png",
+    "fileHash": "sha256-66fcc2ffdb98f58e62905ee69feb9263c80902539c533fe5395c3515fae1ad55",
+    "apiVersion": 1,
+    "repositoryUrl": "https://github.com/user/HhpandaProvider",
+    "fileSize": 19650,
+    "status": 1,
+    "language": "vi",
+    "authors": [
+        "HHPanda"
+    ],
+    "tvTypes": [
+        "Anime",
+        "AnimeMovie"
+    ],
+    "version": 1,
+    "internalName": "HhpandaProvider",
+    "description": "Xem Ho\u1ea1t H\u00ecnh Trung Qu\u1ed1c Vietsub 4K t\u1eeb HHPanda",
+    "url": "https://raw.githubusercontent.com/user/HhpandaProvider/builds/HhpandaProvider.cs3",
+    "name": "HhpandaProvider"
+}
