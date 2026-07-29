@@ -264,13 +264,37 @@ class HhpandaProvider : MainAPI() {
                         
                         // 1. Try ChillxExtractor mapping
                         loadExtractor("https://chillx.top/embed/vt/$videoId", refererHeader, subtitleCallback) { link ->
-                            callback(link)
+                            kotlinx.coroutines.runBlocking {
+                                callback(
+                                    newExtractorLink(
+                                        source = "StreamFree-Chillx",
+                                        name = "$serverName (${link.name})",
+                                        url = link.url,
+                                        type = com.lagradost.cloudstream3.utils.ExtractorLinkType.M3U8
+                                    ) {
+                                        this.quality = link.quality
+                                        this.headers = mapOf("Origin" to originHeader, "Referer" to refererHeader)
+                                    }
+                                )
+                            }
                             foundLinks = true
                         }
                         
                         // 2. Try AbysscdnExtractor mapping
                         loadExtractor("https://abysscdn.com/?v=$videoId", refererHeader, subtitleCallback) { link ->
-                            callback(link)
+                            kotlinx.coroutines.runBlocking {
+                                callback(
+                                    newExtractorLink(
+                                        source = "StreamFree-Abyss",
+                                        name = "$serverName (${link.name})",
+                                        url = link.url,
+                                        type = com.lagradost.cloudstream3.utils.ExtractorLinkType.M3U8
+                                    ) {
+                                        this.quality = link.quality
+                                        this.headers = mapOf("Origin" to originHeader, "Referer" to refererHeader)
+                                    }
+                                )
+                            }
                             foundLinks = true
                         }
 
