@@ -1,0 +1,59 @@
+loadPlayer(post_id, chapter_st, sv, type) {
+                let playerWrapper = jQuery('#halim-player-wrapper');
+                jQuery.ajax({
+                    type: 'get',
+					url: 'https://hhpanda.st/player/player.php',
+                    data: {
+                        action: 'dox_ajax_player',
+                        post_id: post_id,
+                        chapter_st: chapter_st,
+                        type: type,
+                        sv: sv,
+                    },
+                    beforeSend: function () {
+                        playerWrapper.find('iframe').attr('src', '');
+                        playerWrapper.find('iframe').addClass('iframe-placeholder')
+                    },
+                    success: function (data) {
+                        playerWrapper.html(data);
+                    },
+                });
+            }
+
+            setTimeout(function () {
+                let activeEpi = jQuery('.halim-episode.active a');
+                let post_id = activeEpi.attr('data-post-id');
+                let chapter_st = activeEpi.attr('data-ep');
+                let sv = activeEpi.attr('data-sv');
+                let typeEle = jQuery('#halim-ajax-list-server .get-eps').first();
+                loadPlayer(post_id, chapter_st, sv, typeEle.attr('data-type'));
+                typeEle.addClass('active');
+            }, 300);
+            jQuery('body').on('click', '#halim-ajax-list-server .get-eps', function () {
+                jQuery('#halim-ajax-list-server').find('.get-eps').removeClass('active');
+                let activeEpi = jQuery('.halim-episode.active a');
+                let post_id = activeEpi.attr('data-post-id');
+                let chapter_st = activeEpi.attr('data-ep');
+                let sv = activeEpi.attr('data-sv');
+                let typeEle = jQuery(this);
+                loadPlayer(post_id, chapter_st, sv, typeEle.attr('data-type'));
+                typeEle.addClass('active');
+            });
+            function playerErrorEvent() {
+                var eventMethod = window.addEventListener
+                    ? "addEventListener"
+                    : "attachEvent";
+                var eventer = window[eventMethod];
+                var messageEvent = eventMethod === "attachEvent"
+                    ? "onmessage"
+                    : "message";
+                eventer(messageEvent, function (e) {
+                    if (e.data === "player_error" || e.message === "player_error") {
+                        $('body').find('#halim-ajax-list-server .btn-hii').trigger('click');
+                    }
+                    if (e.data === "player_error_t" || e.message === "player_error_t") {
+                        $('body').find('#halim-ajax-list-server .btn-vippro').trigger('click');
+                    }
+                });
+            }
+            playerErrorEvent();</script> </main></div><div class="clearfix"></div><div class="container"><div id="ft-mex"><div class="footer_tags"><ul id="menu-footer-menu"

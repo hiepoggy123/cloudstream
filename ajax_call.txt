@@ -1,0 +1,20 @@
+iv></div><div class="wpd-thread-list"><div class="wpdiscuz-comment-pagination" style='display:none;'><div class="wpd-load-more-submit-wrap">
+<button name="submit" data-lastparentid="0"
+class="wpd-load-more-submit wpd-loaded wpd-prim-button">
+Tß║úi th├¬m b├¼nh luß║¡n                                </button></div>
+<span id="wpdiscuzHasMoreComments" data-is_show_load_more="0"></span></div></div></div></div></div><div id="wpdiscuz-loading-bar"
+class="wpdiscuz-loading-bar-unauth"></div><div id="wpdiscuz-comment-message"
+class="wpdiscuz-comment-message-unauth"></div></div><div class="tags-list">
+<a href="https://hhpanda.st/tag/tram-than-phan-2" rel="tag">Trß║úm Thß║ºn Phß║ºn 2</a><a href="https://hhpanda.st/tag/zhan-shen-2" rel="tag">Zhan Shen 2</a></div></section> <script>function loadPlayer(post_id, chapter_st, sv, type) {
+                let playerWrapper = jQuery('#halim-player-wrapper');
+                jQuery.ajax({
+                    type: 'get',
+					url: 'https://hhpanda.st/player/player.php',
+                    data: {
+                        action: 'dox_ajax_player',
+                        post_id: post_id,
+                        chapter_st: chapter_st,
+                        type: type,
+                        sv: sv,
+                    },
+                    beforeS
