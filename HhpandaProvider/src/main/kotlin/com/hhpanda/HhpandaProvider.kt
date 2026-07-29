@@ -6,8 +6,11 @@ import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.network.WebViewResolver
 
 class HhpandaProvider : MainAPI() {
     override var mainUrl = "https://hhpanda.st"
@@ -253,6 +256,34 @@ class HhpandaProvider : MainAPI() {
                     // Extract iframe src from response
                     val iframeSrc = Regex("""src="(https?://[^"]+)"""")
                         .find(response)?.groupValues?.get(1) ?: continue
+
+                    if (iframeSrc.contains("streamfree.vip")) {
+                        try {
+                            val m3u8Response = app.get(
+                                iframeSrc, 
+                                referer = "$mainUrl/", 
+                                interceptor = WebViewResolver(Regex("""\.m3u8"""))
+                            )
+                            val m3u8Url = m3u8Response.url
+                            if (m3u8Url.contains(".m3u8")) {
+                                callback(
+                                    newExtractorLink(
+                                        source = "StreamFree",
+                                        name = "$serverName ($svLabel)",
+                                        url = m3u8Url,
+                                        type = com.lagradost.cloudstream3.utils.ExtractorLinkType.M3U8
+                                    ) {
+                                        this.quality = Qualities.Unknown.value
+                                        this.headers = mapOf("referer" to iframeSrc)
+                                    }
+                                )
+                                foundLinks = true
+                                continue
+                            }
+                        } catch (e: Exception) {
+                            // Fallback to loadExtractor if WebView fails
+                        }
+                    }
 
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
