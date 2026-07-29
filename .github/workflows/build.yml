@@ -1,31 +1,62 @@
-name: Build Plugin
+name: Build Plugins
+
+concurrency: 
+  group: "build"
+  cancel-in-progress: true
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '*.md'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main source
+        uses: actions/checkout@v4
+        with:
+          path: "src"
 
-      - name: Set up JDK 17
+      - name: Checkout builds branch
+        uses: actions/checkout@v4
+        with:
+          ref: "builds"
+          path: "builds"
+        continue-on-error: true
+
+      - name: Create builds directory if missing
+        run: mkdir -p $GITHUB_WORKSPACE/builds
+
+      - name: Clean old builds
+        run: rm -f $GITHUB_WORKSPACE/builds/*.cs3
+
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build with Gradle
-        run: ./gradlew HhpandaProvider:make
+      - name: Build Plugins & Generate plugins.json
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          chmod +x gradlew
+          ./gradlew makePlugins makePluginsJson || ./gradlew make
+          cp **/build/*.cs3 $GITHUB_WORKSPACE/builds/ 2>/dev/null || true
+          cp build/plugins.json $GITHUB_WORKSPACE/builds/ 2>/dev/null || cp build/plugins.json.gz $GITHUB_WORKSPACE/builds/ 2>/dev/null || true
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: HhpandaProvider
-          path: HhpandaProvider/build/*.cs3
+      - name: Deploy to builds branch
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Auto Build Plugins [$GITHUB_SHA]" || exit 0
+          git push origin HEAD:builds --force
