@@ -258,30 +258,47 @@ class HhpandaProvider : MainAPI() {
                         .find(response)?.groupValues?.get(1) ?: continue
 
                     if (iframeSrc.contains("streamfree.vip")) {
-                        try {
-                            val m3u8Response = app.get(
-                                iframeSrc, 
-                                referer = "$mainUrl/", 
-                                interceptor = WebViewResolver(Regex("""\.m3u8"""))
-                            )
-                            val m3u8Url = m3u8Response.url
-                            if (m3u8Url.contains(".m3u8")) {
-                                callback(
-                                    newExtractorLink(
-                                        source = "StreamFree",
-                                        name = "$serverName ($svLabel)",
-                                        url = m3u8Url,
-                                        type = com.lagradost.cloudstream3.utils.ExtractorLinkType.M3U8
-                                    ) {
-                                        this.quality = Qualities.Unknown.value
-                                        this.headers = mapOf("referer" to iframeSrc)
-                                    }
+                        val videoId = iframeSrc.substringAfterLast("/")
+                        
+                        // 1. Try ChillxExtractor mapping
+                        loadExtractor("https://chillx.top/embed/vt/$videoId", "$mainUrl/", subtitleCallback) { link ->
+                            callback(link)
+                            foundLinks = true
+                        }
+                        
+                        // 2. Try AbysscdnExtractor mapping
+                        loadExtractor("https://abysscdn.com/?v=$videoId", "$mainUrl/", subtitleCallback) { link ->
+                            callback(link)
+                            foundLinks = true
+                        }
+
+                        // 3. Try WebViewResolver with broader regex (m3u8 or mp4)
+                        if (!foundLinks) {
+                            try {
+                                val m3u8Response = app.get(
+                                    iframeSrc, 
+                                    referer = "$mainUrl/", 
+                                    interceptor = WebViewResolver(Regex(""".*\.(m3u8|mp4).*"""))
                                 )
-                                foundLinks = true
-                                continue
+                                val m3u8Url = m3u8Response.url
+                                if (m3u8Url.contains(".m3u8") || m3u8Url.contains(".mp4")) {
+                                    callback(
+                                        newExtractorLink(
+                                            source = "StreamFree",
+                                            name = "$serverName ($svLabel)",
+                                            url = m3u8Url,
+                                            type = com.lagradost.cloudstream3.utils.ExtractorLinkType.M3U8
+                                        ) {
+                                            this.quality = Qualities.Unknown.value
+                                            this.headers = mapOf("referer" to iframeSrc)
+                                        }
+                                    )
+                                    foundLinks = true
+                                    continue
+                                }
+                            } catch (e: Exception) {
+                                // Fallback
                             }
-                        } catch (e: Exception) {
-                            // Fallback to loadExtractor if WebView fails
                         }
                     }
 
