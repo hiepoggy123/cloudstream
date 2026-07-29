@@ -103,11 +103,11 @@ class HhpandaProvider : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String, page: Int): SearchResponseList? {
+    private suspend fun searchList(query: String, page: Int): List<SearchResponse>? {
         val url = if (page == 1) "$mainUrl/?s=${query}" else "$mainUrl/page/$page/?s=$query"
         val document = app.get(url, referer = mainUrl).document
 
-        val items = document.select("article, .item, .post, .film_list-wrap > div, .search-results > div").mapNotNull {
+        return document.select("article, .item, .post, .film_list-wrap > div, .search-results > div").mapNotNull {
             it.toSearchResult()
         }.ifEmpty {
             // Fallback: find all links that look like show pages
@@ -118,11 +118,15 @@ class HhpandaProvider : MainAPI() {
                     (el.select("img").isNotEmpty() || el.text().trim().length > 2)
             }.distinctBy { it.attr("href") }.mapNotNull { it.toSearchResultFromLink() }
         }
-
-        return items.toNewSearchResponseList()
     }
 
-    override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query, 1)?.list
+    override suspend fun search(query: String, page: Int): SearchResponseList? {
+        return searchList(query, page)?.toNewSearchResponseList()
+    }
+
+    override suspend fun quickSearch(query: String): List<SearchResponse>? {
+        return searchList(query, 1)
+    }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url, referer = mainUrl).document
@@ -152,9 +156,9 @@ class HhpandaProvider : MainAPI() {
         // Extract genres/tags
         val tags = document.select("a[href*='/the-loai/']").map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
 
-        // Extract rating
+        // Extract rating (convert e.g. 8.5/10 to Int score e.g. 85)
         val rating = Regex("""ratingValue["\s:]+([0-9.]+)""").find(document.html())
-            ?.groupValues?.get(1)?.toDoubleOrNull()
+            ?.groupValues?.get(1)?.toDoubleOrNull()?.times(10)?.toInt()
 
         // Extract year from title or description
         val year = Regex("""(\d{4})""").find(document.html())?.groupValues?.get(1)?.toIntOrNull()
@@ -208,7 +212,7 @@ class HhpandaProvider : MainAPI() {
             this.posterUrl = posterUrl
             this.plot = description
             this.tags = tags
-            this.score = rating?.let { Score(it, 10) }
+            this.score = rating?.let { Score(it) }
             this.year = year
         }
     }
@@ -253,9 +257,16 @@ class HhpandaProvider : MainAPI() {
                     // Use loadExtractor to handle the embedded video
                     loadExtractor(iframeSrc, "$mainUrl/", subtitleCallback) { link ->
                         // Override the name to include quality info
-                        val newLink = link.copy(
+                        @Suppress("DEPRECATION")
+                        val newLink = ExtractorLink(
                             source = this.name,
-                            name = "$serverName ($svLabel)"
+                            name = "$serverName ($svLabel)",
+                            url = link.url,
+                            referer = link.referer,
+                            quality = link.quality,
+                            isM3u8 = link.isM3u8,
+                            headers = link.headers,
+                            extractorData = link.extractorData
                         )
                         callback(newLink)
                         foundLinks = true
