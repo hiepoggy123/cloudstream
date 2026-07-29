@@ -1,0 +1,8 @@
+{
+    "name": "HHPanda Repository",
+    "description": "Kho tiện ích HHPanda cho CloudStream",
+    "manifestVersion": 1,
+    "pluginLists": [
+        "https://raw.githubusercontent.com/hiepoggy123/cloudstream/builds/plugins.json"
+    ]
+}
