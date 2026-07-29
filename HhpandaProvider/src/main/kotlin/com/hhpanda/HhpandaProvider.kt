@@ -259,38 +259,40 @@ class HhpandaProvider : MainAPI() {
 
                     if (iframeSrc.contains("streamfree.vip")) {
                         val videoId = iframeSrc.substringAfterLast("/")
+                        val originHeader = "https://streamfree.vip"
+                        val refererHeader = "https://streamfree.vip/"
                         
                         // 1. Try ChillxExtractor mapping
-                        loadExtractor("https://chillx.top/embed/vt/$videoId", "$mainUrl/", subtitleCallback) { link ->
+                        loadExtractor("https://chillx.top/embed/vt/$videoId", refererHeader, subtitleCallback) { link ->
                             callback(link)
                             foundLinks = true
                         }
                         
                         // 2. Try AbysscdnExtractor mapping
-                        loadExtractor("https://abysscdn.com/?v=$videoId", "$mainUrl/", subtitleCallback) { link ->
+                        loadExtractor("https://abysscdn.com/?v=$videoId", refererHeader, subtitleCallback) { link ->
                             callback(link)
                             foundLinks = true
                         }
 
-                        // 3. Try WebViewResolver with broader regex (m3u8 or mp4)
+                        // 3. Try WebViewResolver with broader regex
                         if (!foundLinks) {
                             try {
                                 val m3u8Response = app.get(
                                     iframeSrc, 
-                                    referer = "$mainUrl/", 
+                                    referer = refererHeader, 
                                     interceptor = WebViewResolver(Regex(""".*\.(m3u8|mp4).*"""))
                                 )
                                 val m3u8Url = m3u8Response.url
                                 if (m3u8Url.contains(".m3u8") || m3u8Url.contains(".mp4")) {
                                     callback(
                                         newExtractorLink(
-                                            source = "StreamFree",
+                                            source = "StreamFree-WebView",
                                             name = "$serverName ($svLabel)",
                                             url = m3u8Url,
                                             type = com.lagradost.cloudstream3.utils.ExtractorLinkType.M3U8
                                         ) {
                                             this.quality = Qualities.Unknown.value
-                                            this.headers = mapOf("referer" to iframeSrc)
+                                            this.headers = mapOf("Origin" to originHeader, "Referer" to refererHeader)
                                         }
                                     )
                                     foundLinks = true
